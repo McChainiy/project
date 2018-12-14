@@ -108,7 +108,7 @@ class Ui_GoalWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Goal"))
         self.goalName.setText(_translate("MainWindow", "**НАЗВАНИЕ**"))
         self.desc_text.setHtml(_translate("MainWindow", ""))
         self.label_2.setText(_translate("MainWindow", "Описание"))
@@ -296,7 +296,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def create_goal(self):
-        dial_data = ChangeGoal()
+        print(self.mainCalendar.selectedDate(), '', '')
+        dial_data = ChangeGoal(self.mainCalendar.selectedDate(), '', '')
+
         dial_data.exec_()
 
         if not dial_data.notclosed:
@@ -339,14 +341,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
 class ChangeGoal(QDialog, Ui_Dialog):
-    def __init__(self):
+    def __init__(self, date, name, desc):
         super().__init__()
         self.setupUi(self)
-        self.initUI()
+        self.initUI(date, name, desc)
 
-    def initUI(self):
+    def initUI(self, date, name, desc):
         self.notclosed = False
         self.calendarWidget.clicked.connect(self.selectDate)
+
 
         self.setFixedSize(521, 791)
 
@@ -362,6 +365,11 @@ class ChangeGoal(QDialog, Ui_Dialog):
         self.dateEdit.timeChanged.connect(self.time_changed)
 
         self.addEvent.clicked.connect(self.event_add)
+
+        self.calendarWidget.setSelectedDate(date)
+        self.nameTextLine.setText(name)
+        self.descriptionText.setPlainText(desc)
+
 
     def event_add(self):
         self.txt_name = self.nameTextLine.text()
@@ -411,8 +419,40 @@ class Goal(QMainWindow, Ui_GoalWindow):
         self.desc = desc
         self.date_q = date_q
         self.date_text = date_text
+        self.initUI()
+
+    def initUI(self):
+        self.do_start()
+
+        self.editGoalButton.clicked.connect(self.edit_goal)
+
+    def edit_goal(self):
+        print('asdfasdf')
+        cur_date = [int(i) for i in self.date_text.split()[0].split('.')]
+        cur_date = QDate(cur_date[2], cur_date[1], cur_date[0])
+        print(cur_date)
+        prom = ex.goals_dict[self.name]
+        del ex.goals_dict[self.name]
+        dial_data = ChangeGoal(cur_date, self.name, self.desc)
+        dial_data.exec_()
+
+        if not dial_data.notclosed:
+            return
+
+        gotten_text = dial_data.txt_name
 
 
+
+        ex.goals_dict[gotten_text] = prom
+
+        self.name = dial_data.txt_name
+        self.date_q = dial_data.dateEdit.dateTime()
+        self.date_text = dial_data.dateEdit.text()
+        self.desc = dial_data.txt_desc
+
+        self.do_start()
+
+    def do_start(self):
         self.goalName.setText(self.name)
 
         self.desc_text.setText(self.desc)
@@ -421,17 +461,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
 
         self.label_8.setText('Осталось дней - {}'.format(self.delta_time(
             self.date_text, self.change_date_type(QDateTime.currentDateTime().__str__()))))
-        print(self.date_text)
-        print(self.change_date_type(QDateTime.currentDateTime().__str__()))
-        print(self.delta_time(self.date_text, self.change_date_type(QDateTime.currentDateTime().__str__()) ))
 
-
-
-
-        self.initUI()
-
-    def initUI(self):
-        pass
 
     def change_date_type(self, date):
         dt = date[23:-1].split(', ')
