@@ -5,6 +5,7 @@ from PyQt5.QtCore import QDateTime, QDate, QTime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -327,7 +328,6 @@ class Ui_NoteDesign(object):
         self.statusBar = QLabel(Dialog)
         self.statusBar.setGeometry(220, 620, 190, 50)
 
-
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
@@ -342,15 +342,16 @@ class Ui_NoteDesign(object):
         self.ok_button.setText(_translate("Dialog", "Принять"))
 
 
-def get_current_date_in_str():
+def get_current_date_in_str(): #возвращает дату в текстовом формате
     dt = QDateTime.currentDateTime().__str__()[23:-1].split(', ')
     return '{}.{}.{} {}:{}'.format(dt[2], dt[1], dt[0], dt[3], dt[4])
 
-def print_description(text):
+
+def print_description(text): # форматирует описание
     return '{}{}'.format(text[:47], "..." if len(text) > 47 else '')
 
 
-class MainWindow(QMainWindow, Ui_MainWindow):
+class MainWindow(QMainWindow, Ui_MainWindow): #основной класс
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
@@ -364,10 +365,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.nearestGoals.clicked.connect(self.nearest_goals_sort)
         self.allGoals.clicked.connect(self.all_goals_sort)
 
-    def open_goal(self, item):
+    def open_goal(self, item): #открывает окно цели
         self.goals_dict[item.text()].show()
 
-    def create_goal(self):
+    def create_goal(self): #создает цель при помощи диалогового окна
         dial_data = ChangeGoal(self.mainCalendar.selectedDate(), '', '')
 
         dial_data.exec_()
@@ -384,31 +385,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listGoals_date.addItem(self.goals_dict[gotten_text].date_text)
         self.listGoals_desc.addItem(print_description(self.goals_dict[gotten_text].desc))
 
-    def nearest_goals_sort(self):
+    def nearest_goals_sort(self):    #сортирует список целей по ближайшим
         self.cur_list_of_goals = sorted(self.goals_dict.items(),
                                         key=lambda kv: kv[1].date_q)[:20]
 
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
 
-    def all_goals_sort(self):
+    def all_goals_sort(self): # показывает все цели
         self.cur_list_of_goals = self.goals_dict.items()
 
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
 
-    def full_list_cleaning(self):
+    def full_list_cleaning(self):     # очищает список целей
         self.listGoals_name.clear()
         self.listGoals_date.clear()
         self.listGoals_desc.clear()
 
-    def adding_items_to_list(self, list_of_goals):
+    def adding_items_to_list(self, list_of_goals):        #добавляет цель в список
         self.listGoals_name.addItems([i[0] for i in list_of_goals])
         self.listGoals_date.addItems([i[1].date_text for i in list_of_goals])
         self.listGoals_desc.addItems([print_description(i[1].desc) for i in list_of_goals])
 
 
-class ChangeGoal(QDialog, Ui_Dialog):
+class ChangeGoal(QDialog, Ui_Dialog):     #диалоговое окно изменения цели
     def __init__(self, date, name, desc):
         super().__init__()
         self.setupUi(self)
@@ -438,7 +439,7 @@ class ChangeGoal(QDialog, Ui_Dialog):
         self.nameTextLine.setText(name)
         self.descriptionText.setPlainText(desc)
 
-    def event_add(self):
+    def event_add(self):     #обработчик события нажатия кнопки Принять
         self.txt_name = self.nameTextLine.text()
         self.txt_desc = self.descriptionText.toPlainText()
         self.txt_desc = ''.join(list(map(lambda x: ' ' if x == '\n' else x, list(self.txt_desc))))
@@ -452,12 +453,12 @@ class ChangeGoal(QDialog, Ui_Dialog):
         self.notclosed = True
         self.close()
 
-    def selectDate(self):
+    def selectDate(self):              #выбрать дату
         date = self.calendarWidget.selectedDate()
         self.datef = QDate(date.year(), date.month(), date.day())
         self.dateEdit.setDate(self.datef)
 
-    def destroy(self):
+    def destroy(self): #изменение ползунка часов или минут -> изменение dateEdit
         if self.sender() == self.hours_dial:
             self.time[0] = self.sender().value()
         else:
@@ -465,10 +466,10 @@ class ChangeGoal(QDialog, Ui_Dialog):
         self.timef = QTime(self.time[0], self.time[1])
         self.dateEdit.setTime(self.timef)
 
-    def date_changed(self):
+    def date_changed(self):       #изменение даты в dateEdit-> изменение в календаре
         self.calendarWidget.setSelectedDate(self.dateEdit.date())
 
-    def time_changed(self):
+    def time_changed(self):       #изменение времени в dateEdit -> изменение в ползунках
         self.time = self.dateEdit.text()
         self.time = [int(i) for i in self.time.split()[1].split(':')]
 
@@ -476,7 +477,7 @@ class ChangeGoal(QDialog, Ui_Dialog):
         self.minutes_dial.setSliderPosition(self.time[1])
 
 
-class Goal(QMainWindow, Ui_GoalWindow):
+class Goal(QMainWindow, Ui_GoalWindow):     #класс цели
     def __init__(self, name, date_q, date_text, desc):
         super().__init__()
         self.setupUi(self)
@@ -497,7 +498,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
 
         self.chapterList.itemDoubleClicked.connect(self.open_note)
 
-    def open_note(self, item):
+    def open_note(self, item):     #открывает задачу
         prom = self.notes_dict[item.text()]
         del self.notes_dict[item.text()]
         prom.not_closed = False
@@ -510,25 +511,24 @@ class Goal(QMainWindow, Ui_GoalWindow):
         self.notes_dict[prom.txt_name] = prom
         self.all_notes_sort()
 
-    def all_notes_sort(self):
+    def all_notes_sort(self):       #показывает все задачи
         self.cur_list_of_goals = sorted(self.notes_dict.items(),
                                         key=lambda kv: kv[1].count)[:20]
 
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
 
-    def full_list_cleaning(self):
+    def full_list_cleaning(self):   #очищает список
         self.chapterList.clear()
         self.dateList.clear()
         self.pointList.clear()
 
-    def adding_items_to_list(self, list_of_goals):
+    def adding_items_to_list(self, list_of_goals):    #добавить заметку в список
         self.chapterList.addItems([i[0] for i in list_of_goals])
         self.dateList.addItems([i[1].date_txt for i in list_of_goals])
         self.pointList.addItems([str(i[1].point) for i in list_of_goals])
 
-
-    def add_notes(self):
+    def add_notes(self):      #добавить заметку
         prom = Note(self)
         prom.exec_()
 
@@ -541,7 +541,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
         self.dateList.addItem(self.notes_dict[gotten_text].date_txt)
         self.pointList.addItem(str(self.notes_dict[gotten_text].point))
 
-    def edit_goal(self):
+    def edit_goal(self):     #изменяет текущую цель
         cur_date = [int(i) for i in self.date_text.split()[0].split('.')]
         cur_date = QDate(cur_date[2], cur_date[1], cur_date[0])
         prom = ex.goals_dict[self.name]
@@ -562,7 +562,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
         ex.all_goals_sort()
         self.do_start()
 
-    def do_start(self):
+    def do_start(self):       #задает все лейблы
         self.goalName.setText(self.name)
 
         self.desc_text.setText(self.desc)
@@ -580,7 +580,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
                 time2[2] * 365 + time2[1] * 30 + time2[0])
 
 
-class Note(QDialog, Ui_NoteDesign):
+class Note(QDialog, Ui_NoteDesign):       #класс заметки
     def __init__(self, parent):
         self.parent = parent
         self.not_closed = False
@@ -599,7 +599,7 @@ class Note(QDialog, Ui_NoteDesign):
 
         self.ok_button.clicked.connect(self.do_accept)
 
-    def do_accept(self):
+    def do_accept(self): #принять изменения
         if self.nameLine.text() == '*Название*':
             self.statusBar.setText('Измените название')
             return
@@ -616,7 +616,7 @@ class Note(QDialog, Ui_NoteDesign):
         self.not_closed = True
         self.close()
 
-    def change_value(self):
+    def change_value(self):       #изменяет значение лейбла оценки когда меняется слайдер
         self.dayRate_label.setText(str(self.dayRate_slider.value() / 10))
 
 
