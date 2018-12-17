@@ -5,6 +5,8 @@ from PyQt5.QtCore import QDateTime, QDate, QTime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+import json
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -346,6 +348,7 @@ def get_current_date_in_str():
     dt = QDateTime.currentDateTime().__str__()[23:-1].split(', ')
     return '{}.{}.{} {}:{}'.format(dt[2], dt[1], dt[0], dt[3], dt[4])
 
+
 def print_description(text):
     return '{}{}'.format(text[:47], "..." if len(text) > 47 else '')
 
@@ -354,15 +357,45 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        self.goals_dict = {}
+        for name, i in data.items():
+            cur_date = [int(i) for i in i[1].split()[0].split('.')]
+            cur_date = QDate(cur_date[2], cur_date[1], cur_date[0])
+            prom_goal = Goal(name, cur_date, i[1], i[0])
+            prom_notes_dict = {}
+            for note_name, note_data in i[2].items():
+                prom_note = Note(prom_goal)
+                prom_note.date_txt = note_data[0]
+                prom_note.count = note_data[1]
+                prom_note.desc_text = note_data[2]
+                prom_note.point = note_data[3]
+                prom_note.txt_name = note_name
+                prom_notes_dict[note_name] = prom_note
+            prom_goal.notes_dict = prom_notes_dict
+            self.goals_dict[name] = prom_goal
         self.initUI()
+        self.all_goals_sort()
+        for i in self.goals_dict.values():
+            i.all_notes_sort()
+
 
     def initUI(self):
-        self.goals_dict = {}
         self.createGoal_button.clicked.connect(self.create_goal)
         self.listGoals_name.itemDoubleClicked.connect(self.open_goal)
 
         self.nearestGoals.clicked.connect(self.nearest_goals_sort)
         self.allGoals.clicked.connect(self.all_goals_sort)
+
+        app.aboutToQuit.connect(self.close_process)
+
+    def close_process(self):
+        full_dict = {}
+        for i, x in self.goals_dict.items():
+            full_dict[i] = [x.desc, x.date_text, {}]
+            for y, z in x.notes_dict.items():
+                full_dict[i][-1][y] = [z.date_txt, z.count, z.desc_text, z.point]
+        with open('data_file.txt', 'w') as write_file:
+            write_file.write(json.dumps(full_dict))
 
     def open_goal(self, item):
         self.goals_dict[item.text()].show()
@@ -406,6 +439,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.listGoals_name.addItems([i[0] for i in list_of_goals])
         self.listGoals_date.addItems([i[1].date_text for i in list_of_goals])
         self.listGoals_desc.addItems([print_description(i[1].desc) for i in list_of_goals])
+
 
 
 class ChangeGoal(QDialog, Ui_Dialog):
@@ -512,7 +546,7 @@ class Goal(QMainWindow, Ui_GoalWindow):
 
     def all_notes_sort(self):
         self.cur_list_of_goals = sorted(self.notes_dict.items(),
-                                        key=lambda kv: kv[1].count)[:20]
+                                        key=lambda kv: kv[1].count)
 
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
@@ -526,7 +560,6 @@ class Goal(QMainWindow, Ui_GoalWindow):
         self.chapterList.addItems([i[0] for i in list_of_goals])
         self.dateList.addItems([i[1].date_txt for i in list_of_goals])
         self.pointList.addItems([str(i[1].point) for i in list_of_goals])
-
 
     def add_notes(self):
         prom = Note(self)
@@ -550,8 +583,11 @@ class Goal(QMainWindow, Ui_GoalWindow):
         dial_data.exec_()
 
         if not dial_data.notclosed:
+            print(2)
             ex.goals_dict[self.name] = prom
             return
+
+        print(3)
 
         gotten_text = dial_data.txt_name
         ex.goals_dict[gotten_text] = prom
@@ -621,7 +657,10 @@ class Note(QDialog, Ui_NoteDesign):
 
 
 if __name__ == '__main__':
+    with open('data_file.txt') as file:
+        f = file.read()
+        data = json.loads(f)
     app = QApplication(sys.argv)
     ex = MainWindow()
     ex.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
