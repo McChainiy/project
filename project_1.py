@@ -5,7 +5,7 @@ from PyQt5.QtCore import QDateTime, QDate, QTime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-import json
+import json, time
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -188,8 +188,11 @@ class Ui_GoalWindow(object):
         self.label_2.setFont(font)
         self.label_2.setObjectName("label_2")
         self.editGoalButton = QtWidgets.QPushButton(self.centralwidget)
-        self.editGoalButton.setGeometry(QtCore.QRect(10, 480, 131, 41))
+        self.editGoalButton.setGeometry(QtCore.QRect(10, 500, 131, 41))
         self.editGoalButton.setObjectName("editGoalButton")
+        self.deleteGoalButton = QtWidgets.QPushButton(self.centralwidget)
+        self.deleteGoalButton.setGeometry(QtCore.QRect(160, 500, 131, 41))
+        self.deleteGoalButton.setObjectName("editGoalButton")
         self.addNoteButton = QtWidgets.QPushButton(self.centralwidget)
         self.addNoteButton.setGeometry(QtCore.QRect(600, 470, 181, 51))
         self.addNoteButton.setObjectName("addNoteButton")
@@ -245,7 +248,7 @@ class Ui_GoalWindow(object):
         self.label_7.setFont(font)
         self.label_7.setObjectName("label_7")
         self.label_8 = QtWidgets.QLabel(self.centralwidget)
-        self.label_8.setGeometry(QtCore.QRect(180, 470, 171, 41))
+        self.label_8.setGeometry(QtCore.QRect(180, 460, 171, 41))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.label_8.setFont(font)
@@ -269,13 +272,14 @@ class Ui_GoalWindow(object):
         self.desc_text.setHtml(_translate("MainWindow", ""))
         self.label_2.setText(_translate("MainWindow", "Описание"))
         self.editGoalButton.setText(_translate("MainWindow", "Редактировать  цель"))
+        self.deleteGoalButton.setText(_translate("MainWindow", "Удалить  цель"))
         self.addNoteButton.setText(_translate("MainWindow", "Добавить заметку"))
         self.label_3.setText(_translate("MainWindow", "Заметки"))
         self.label_4.setText(_translate("MainWindow", "Глава"))
         self.label_5.setText(_translate("MainWindow", "Дата"))
         self.label_6.setText(_translate("MainWindow", "Балл"))
-        self.label_7.setText(_translate("MainWindow", "Дедлайн - "))
-        self.label_8.setText(_translate("MainWindow", "Осталось - "))
+        self.label_7.setText(_translate("MainWindow", "Дедлайн: "))
+        self.label_8.setText(_translate("MainWindow", "Осталось: "))
 
 
 class Ui_NoteDesign(object):
@@ -377,6 +381,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.all_goals_sort()
         for i in self.goals_dict.values():
             i.all_notes_sort()
+            for x in i.notes_dict.values():
+                x.nameLine.setText(x.txt_name)
+                x.plainTextEdit.setPlainText(x.desc_text)
+                x.dayRate_slider.setSliderPosition(int(float(x.point * 10)))
+                x.change_value()
+        print(time.time() - time1)
 
 
     def initUI(self):
@@ -419,14 +429,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def nearest_goals_sort(self):
         self.cur_list_of_goals = sorted(self.goals_dict.items(),
-                                        key=lambda kv: kv[1].date_q)[:20]
-
+                                     key=lambda kv: kv[1].date_q)[:20]
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
 
     def all_goals_sort(self):
         self.cur_list_of_goals = self.goals_dict.items()
-
         self.full_list_cleaning()
         self.adding_items_to_list(self.cur_list_of_goals)
 
@@ -527,9 +535,16 @@ class Goal(QMainWindow, Ui_GoalWindow):
 
         self.editGoalButton.clicked.connect(self.edit_goal)
 
+        self.deleteGoalButton.clicked.connect(self.delete_goal)
+
         self.addNoteButton.clicked.connect(self.add_notes)
 
         self.chapterList.itemDoubleClicked.connect(self.open_note)
+
+    def delete_goal(self):
+        del ex.goals_dict[self.name]
+        ex.all_goals_sort()
+        self.close()
 
     def open_note(self, item):
         prom = self.notes_dict[item.text()]
@@ -583,11 +598,8 @@ class Goal(QMainWindow, Ui_GoalWindow):
         dial_data.exec_()
 
         if not dial_data.notclosed:
-            print(2)
             ex.goals_dict[self.name] = prom
             return
-
-        print(3)
 
         gotten_text = dial_data.txt_name
         ex.goals_dict[gotten_text] = prom
@@ -603,17 +615,23 @@ class Goal(QMainWindow, Ui_GoalWindow):
 
         self.desc_text.setText(self.desc)
 
-        self.label_7.setText('Дедлайн - {}'.format(self.date_text.split()[0]))
+        self.label_7.setText('Дедлайн: {}'.format(self.date_text.split()[0]))
 
-        self.label_8.setText('Осталось дней - {}'.format(self.delta_time(
+        self.label_8.setText('Осталось дней: {}'.format(self.delta_time(
             self.date_text, get_current_date_in_str())))
 
     def delta_time(self, time1, time2):
         time1 = [int(i) for i in time1.split()[0].split('.')]
         time2 = [int(i) for i in time2.split()[0].split('.')]
 
-        return (time1[2] * 365 + time1[1] * 30 + time1[0]) - (
-                time2[2] * 365 + time2[1] * 30 + time2[0])
+        time1 = time1[2] * 365 + time1[1] * 30 + time1[0]
+        time2 = time2[2] * 365 + time2[1] * 30 + time2[0]
+
+        if time2 > time1:
+            return 'Дедлайн!'
+
+        else:
+            return time1 - time2
 
 
 class Note(QDialog, Ui_NoteDesign):
@@ -649,6 +667,8 @@ class Note(QDialog, Ui_NoteDesign):
         self.desc_text = self.plainTextEdit.toPlainText()
         self.desc_text = ''.join(list(map(lambda x: ' ' if x == '\n' else x, list(self.desc_text))))
         self.point = self.dayRate_slider.value() / 10
+
+
         self.not_closed = True
         self.close()
 
@@ -657,6 +677,7 @@ class Note(QDialog, Ui_NoteDesign):
 
 
 if __name__ == '__main__':
+    time1 = time.time()
     with open('data_file.txt') as file:
         f = file.read()
         data = json.loads(f)
