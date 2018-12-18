@@ -386,8 +386,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 x.plainTextEdit.setPlainText(x.desc_text)
                 x.dayRate_slider.setSliderPosition(int(float(x.point * 10)))
                 x.change_value()
-        print(time.time() - time1)
-
 
     def initUI(self):
         self.createGoal_button.clicked.connect(self.create_goal)
@@ -677,10 +675,12 @@ class Note(QDialog, Ui_NoteDesign):
 
 
 if __name__ == '__main__':
-    time1 = time.time()
-    with open('data_file.txt') as file:
-        f = file.read()
-        data = json.loads(f)
+    try:
+        with open('data_file.txt') as file:
+            f = file.read()
+            data = json.loads(f)
+    except Exception:
+        data = {}
     app = QApplication(sys.argv)
     ex = MainWindow()
     ex.show()
